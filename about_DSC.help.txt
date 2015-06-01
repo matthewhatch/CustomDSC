@@ -1,0 +1,102 @@
+
+FM Global's DSC Tools
+=====================
+
+Summary
+-------
+This module was built to help with the FM Global implemetation of Desired State Configuration.  There are several Cmdlets that are intended to simplify
+some complex DSC tasks.  In order to make the process simple for a support engineer and the team to track what configuration a server should use. We created a 
+database to track the GUID to Server association.  This module extracts data from the Configurtion Management database and creats a Met.MOF file for a specific server.
+Other cmdlets are used to update the LCM using push method and then force the server to evalute its DSC configuration is performed by another cmdlet.  
+There is one main Cmdlet that can be used to perform all these steps, Invoke-DSCBuild.  This cmdlet wraps four other cmdlets, Get-ServerConfiguration, 
+New-MetaMOF, Set-LCMConfiguration, Update-LCMConfiguration.
+
+
+Invoke-DSCBuild
+---------------
+
+    Ideally this is the only command a support engineer needs to know to update a server with its latest configuration.
+    As long as the Server has been entered in the configuration database and associated with the latest configuration, 
+    the engineer can run use the pattern below:
+
+    $Cred = Get-Credential
+    Invoke-DSCBuild -ComputerName 'Server0001' -Credential $Cred
+
+
+Get-ServerConfigurationData
+---------------------------
+
+    This returns the configuration data from the Configuration Management database. The data thats returned is used to 
+    create the meta.mof file.
+
+    Get-ServerConfigurationData -ComputerName 'Server0001'
+
+
+New-MetaMOF
+-----------
+    
+    This creates the meta.mof file to be used to update the LCM
+
+    Get-ServerConfigurationData | New-MetaMOF
+
+
+Set-LCMConfiguration
+--------------------
+    
+    This pushes meta.mof to the server based on the name of the meta.mof file
+
+    $Cred = Get-Credential
+    Set-LCMConfiguration -ComputerName -Credential $Cred
+
+
+Update-LCMConfiguration
+-----------------------
+    This forces the configuration evaluation
+
+    Update-LCMConfiguration -ComputerName -Credential $Cred
+
+
+Get-DSCGuid
+-----------
+    This retreives all Configuration IDs from the Config Database
+
+    Servers           : {Server001, Server002}
+    Environment       : ALL
+    ConfigurationName : BaseAppServer2008R2
+    GUID              : 8d7746d9-2770-4352-9e42-dd9df68asc23
+    Version           : 1.9
+
+
+Get-DSCServer
+------------
+    Returns all servers in the Configuration Database
+
+    Environment  : PERF01
+    ComputerName : Server0002
+    GUID         : f02774ae-fa36-4da7-9f6e-2f904z4bf576
+    IPAddress    : 10.1.1.111
+
+
+Process
+=======
+
+In order to build a server and configure it using Desired State Configuration, the server being built needs to be added to the configuration
+management database. This is a manual process using a Lightswitch application and can be accessed at http://johnmndq20/PSDSCConfigurationManager/DesktopClient/default.htm
+If the Configuration ID has already been added to the database, then the server needs to be added and associated with the proper GUID(Configuration ID).
+
+
+1. Find the GUID to be used for the server by using the command Get-DSCGuid.  This is not perfect, but gives you a list of all Configuration IDs and can be filtered to 
+    find the correct ID for the server based on application and environment.
+
+2. Enter the server in the database and associate it with the Configuration ID discovered in step 1.
+
+3. Once the server has been entered, you can test by usng the command Get-ServerConfigurationData -ComputerName APPServer0001. The results will look like the following:
+    
+    ApplicationEnvironment : APPDEV01
+    Environment            : DEV
+    CertificateID          : 49257b33973c7f3dd4285971d149116bc7506822
+    ComputerName           : APPServer0001
+    Guid                   : 34c5d570-275c-4e35-b95c-684224a527b8
+    Url                    : https://dscpull-pp.corp.fmglobal.com/PSDSCPullServer.svc
+
+4. Once the data is verified run Invoke-DSCBuild -ComputerName -ComputerName APPServer0001
