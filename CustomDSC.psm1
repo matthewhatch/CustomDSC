@@ -1,6 +1,4 @@
-﻿#REQUIRES -Version 4.0
-
-data LocalizedData
+﻿data LocalizedData
 {
 # culture="en-US"
 ConvertFrom-StringData @'
